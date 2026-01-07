@@ -1,65 +1,29 @@
-name: Build and Release
+name: Create Release
 
 on:
   push:
-    branches:
-      - main
-      - master
     tags:
       - 'v*'
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  release:
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install NSIS
+    - name: Verify installer exists
       run: |
-        $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09.zip/download"
-        $nsisZip = "$env:TEMP\nsis.zip"
-        
-        Write-Host "Downloading NSIS..."
-        Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
-        
-        Write-Host "Extracting NSIS..."
-        Expand-Archive -Path $nsisZip -DestinationPath "C:\" -Force
-        if (Test-Path "C:\nsis-3.09") {
-          Rename-Item -Path "C:\nsis-3.09" -NewName "nsis" -Force
-        }
-        
-        $env:PATH = "C:\nsis;$env:PATH"
-        echo "C:\nsis" | Out-File -FilePath $env:GITHUB_PATH -Append
-        Write-Host "NSIS installed successfully"
-        
-    - name: Build installer
-      working-directory: ./installer
-      run: |
-        Write-Host "Building installer..."
-        C:\nsis\makensis.exe convert-audio.nsi
-        
-        if (Test-Path "VideoToAudioConverter-Installer.exe") {
-          $file = Get-Item "VideoToAudioConverter-Installer.exe"
-          Write-Host "✓ Installer built successfully!"
-          Write-Host "  File: $($file.Name)"
-          Write-Host "  Size: $([math]::Round($file.Length / 1MB, 2)) MB"
-        } else {
-          Write-Error "✗ Installer was not created!"
+        if [ ! -f "installer/VideoToAudioConverter-Installer.exe" ]; then
+          echo "Error: installer/VideoToAudioConverter-Installer.exe not found!"
           exit 1
-        }
-        
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: installer-${{ github.sha }}
-        path: installer/VideoToAudioConverter-Installer.exe
-        retention-days: 30
+        fi
+        echo "✓ Installer file found"
+        ls -lh installer/VideoToAudioConverter-Installer.exe
         
     - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: installer/VideoToAudioConverter-Installer.exe
