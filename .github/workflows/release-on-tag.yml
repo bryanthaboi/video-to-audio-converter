@@ -1,0 +1,84 @@
+name: Create Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # e.g., v1.0.0, v1.2.3
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install NSIS
+      run: |
+        $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09.zip/download"
+        $nsisZip = "$env:TEMP\nsis.zip"
+        
+        Write-Host "Downloading NSIS..."
+        Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
+        
+        Write-Host "Extracting NSIS..."
+        Expand-Archive -Path $nsisZip -DestinationPath "C:\" -Force
+        Rename-Item -Path "C:\nsis-3.09" -NewName "nsis" -Force
+        
+        $env:PATH = "C:\nsis;$env:PATH"
+        echo "C:\nsis" | Out-File -FilePath $env:GITHUB_PATH -Append
+        
+    - name: Build installer
+      working-directory: ./installer
+      run: |
+        Write-Host "Building installer for release..."
+        C:\nsis\makensis.exe convert-audio.nsi
+        
+        if (-not (Test-Path "VideoToAudioConverter-Installer.exe")) {
+          Write-Error "Installer build failed!"
+          exit 1
+        }
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: installer/VideoToAudioConverter-Installer.exe
+        name: Release ${{ github.ref_name }}
+        body: |
+          # Video to Audio Converter ${{ github.ref_name }}
+          
+          ## Installation
+          
+          1. Download `VideoToAudioConverter-Installer.exe` below
+          2. Run the installer
+          3. Right-click any video file and select "Convert to MP3" or "Convert to WAV"
+          
+          ## Features
+          
+          - ✅ Automatically detects and installs ffmpeg if needed
+          - ✅ Adds context menu options for video files
+          - ✅ Supports multiple video formats (MP4, AVI, MKV, MOV, WMV, FLV, WEBM, M4V, 3GP, OGV)
+          - ✅ Clean uninstaller
+          - ✅ Per-user installation (no admin rights required)
+          
+          ## Usage
+          
+          After installation, simply right-click on any video file and choose:
+          - **Convert to MP3** - Creates a 256k MP3 file
+          - **Convert to WAV** - Creates an uncompressed WAV file (PCM 16-bit, 44.1kHz)
+          
+          The converted file will be created in the same directory as the source file.
+          
+          ## Technical Details
+          
+          - Built with NSIS (Nullsoft Scriptable Install System)
+          - Uses PowerShell for conversion scripts
+          - ffmpeg source: https://www.gyan.dev/ffmpeg/builds/
+          
+          ---
+          
+          **Full Changelog:** ${{ github.event.repository.compare_url }}
+        draft: false
+        prerelease: ${{ contains(github.ref_name, '-') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

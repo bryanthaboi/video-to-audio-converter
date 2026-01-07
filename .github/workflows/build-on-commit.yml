@@ -1,0 +1,62 @@
+name: Build Installer on Commit
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install NSIS
+      run: |
+        # Download and install NSIS
+        $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09.zip/download"
+        $nsisZip = "$env:TEMP\nsis.zip"
+        
+        Write-Host "Downloading NSIS..."
+        Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisZip -UseBasicParsing
+        
+        Write-Host "Extracting NSIS..."
+        Expand-Archive -Path $nsisZip -DestinationPath "C:\" -Force
+        Rename-Item -Path "C:\nsis-3.09" -NewName "nsis" -Force
+        
+        # Add NSIS to PATH
+        $env:PATH = "C:\nsis;$env:PATH"
+        echo "C:\nsis" | Out-File -FilePath $env:GITHUB_PATH -Append
+        
+        Write-Host "NSIS installed successfully"
+        
+    - name: Build installer
+      working-directory: ./installer
+      run: |
+        Write-Host "Building installer..."
+        C:\nsis\makensis.exe convert-audio.nsi
+        
+        if (Test-Path "VideoToAudioConverter-Installer.exe") {
+          Write-Host "Installer built successfully!"
+          $file = Get-Item "VideoToAudioConverter-Installer.exe"
+          Write-Host "File size: $($file.Length) bytes"
+          Write-Host "File created: $($file.CreationTime)"
+        } else {
+          Write-Error "Installer was not created!"
+          exit 1
+        }
+        
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: installer-${{ github.sha }}
+        path: installer/VideoToAudioConverter-Installer.exe
+        retention-days: 7
