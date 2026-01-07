@@ -1,4 +1,4 @@
-# Video to Audio Converter Installer
+# Easy Video to Audio Converter Installer For Windows
 
 This installer adds right-click context menu options to convert video files to MP3 or WAV format using ffmpeg.
 
@@ -117,3 +117,6 @@ installer/
 - Ensure ffmpeg is accessible (check PATH or reinstall)
 - Check that the video file is not corrupted
 - Verify you have write permissions in the video file's directory
+
+
+You can contact me on Twitter [@bryanthaboi](https://twitter.com/bryanthaboi), or open an issue for feature requests.
