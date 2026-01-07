@@ -1,6 +1,12 @@
 # Easy Video to Audio Converter Installer For Windows
 
-This installer adds right-click context menu options to convert video files to MP3 or WAV format using ffmpeg.
+## By bryanthaboi
+
+This installer adds right-click context menu options to convert video files to MP3 or WAV format using ffmpeg. This goes under the "show more options" in windows 11 fyi. You can disable the windows 11 fancy context menu for the legacy one at any time just google it.
+
+<p align="center">
+<img src="example.gif">
+</p>
 
 ## Features
 
